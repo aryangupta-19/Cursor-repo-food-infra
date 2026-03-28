@@ -9,25 +9,43 @@ function AddFood() {
   const [quantity, setQuantity] = useState("");
   const [expiry, setExpiry] = useState("");
   const [location, setLocation] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
 
   const handleSubmit = async () => {
     const expiryHours = Number(expiry);
 
-    if (!Number.isFinite(expiryHours) || expiryHours <= 0) {
+    if (!foodName.trim() || !quantity.trim() || !location.trim()) {
+      setMessage("Please fill all fields before adding food.");
       return;
     }
 
-    await addFood({
-      foodName,
-      quantity,
-      expiryTime: expiryHours,
-      location,
-    });
+    if (!Number.isFinite(expiryHours) || expiryHours <= 0) {
+      setMessage("Please enter expiry time as valid hours.");
+      return;
+    }
 
-    setFoodName("");
-    setQuantity("");
-    setExpiry("");
-    setLocation("");
+    setIsSubmitting(true);
+    setMessage("");
+
+    try {
+      await addFood({
+        foodName: foodName.trim(),
+        quantity: quantity.trim(),
+        expiryTime: expiryHours,
+        location: location.trim(),
+      });
+
+      setFoodName("");
+      setQuantity("");
+      setExpiry("");
+      setLocation("");
+      setMessage("Food added successfully.");
+    } catch {
+      setMessage("Could not add food right now. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -45,7 +63,10 @@ function AddFood() {
       />
       <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" />
 
-      <button onClick={handleSubmit}>Add Food</button>
+      <button onClick={handleSubmit} disabled={isSubmitting}>
+        {isSubmitting ? "Adding..." : "Add Food"}
+      </button>
+      {message ? <p>{message}</p> : null}
     </div>
   );
 }

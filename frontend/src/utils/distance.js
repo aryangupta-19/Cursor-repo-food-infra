@@ -1,5 +1,12 @@
 export function getDeliveryTime(userLoc, foodLoc) {
-  if (userLoc === foodLoc) return 30; // minutes
+  if (
+    typeof userLoc === "string" &&
+    typeof foodLoc === "string" &&
+    userLoc.trim().toLowerCase() === foodLoc.trim().toLowerCase()
+  ) {
+    return 30; // minutes
+  }
+
   return 120; // assume nearby city
 }
 
