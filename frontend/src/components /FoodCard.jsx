@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { Link } from "react-router-dom";
-import { api } from "../../../backend/convex/_generated/api";
+import { api } from "../convex/api";
 import {
   formatExpiryHours,
   formatQuantityKg,

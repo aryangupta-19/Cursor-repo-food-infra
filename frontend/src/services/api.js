@@ -1,4 +1,4 @@
-import { api } from "../../../backend/convex/_generated/api";
+import { api } from "../convex/api";
 
 export { api };
 

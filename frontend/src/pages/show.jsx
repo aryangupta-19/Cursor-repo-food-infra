@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { Link, useParams } from "react-router-dom";
-import { api } from "../../../backend/convex/_generated/api";
+import { api } from "../convex/api";
 import FoodCard from "../components /FoodCard";
 import { getStoredUser } from "../services/auth";
 import { getDeliveryTime } from "../utils/distance";

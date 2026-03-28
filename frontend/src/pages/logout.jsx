@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useAction } from "convex/react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../../../backend/convex/_generated/api";
+import { api } from "../convex/api";
 import { clearStoredAuth, getSessionToken } from "../services/auth";
 
 function LogoutPage() {
