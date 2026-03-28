@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { getUrgencyLevel } from "../services/api";
 
 function Alerts({ foods }) {
@@ -8,19 +9,15 @@ function Alerts({ foods }) {
   if (!urgentFoodCount) return null;
 
   return (
-    <div
-      style={{
-        background: "#d7263d",
-        color: "white",
-        padding: "12px 16px",
-        marginBottom: "16px",
-        borderRadius: "10px",
-        textAlign: "left",
-      }}
-    >
-      {urgentFoodCount === 1
-        ? "Urgent food available near you."
-        : `${urgentFoodCount} urgent food listings need action nearby.`}
+    <div className="alert-banner">
+      <div>
+        {urgentFoodCount === 1
+          ? "Urgent food available near you."
+          : `${urgentFoodCount} urgent food listings need action nearby.`}
+      </div>
+      <Link className="alert-banner__button" to="/urgent">
+        Show Now
+      </Link>
     </div>
   );
 }

@@ -1,8 +1,11 @@
 function Footer() {
   return (
-    <div style={{ marginTop: "40px", padding: "10px", background: "#eee", textAlign: "center" }}>
-      <p>© 2026 FoodConnect | Built for Next Billion</p>
-    </div>
+    <footer className="site-footer">
+      <div className="site-footer__inner">
+        <p>© 2026 FoodConnect</p>
+        <p>Built for the Next Billion with Convex + OpenAI</p>
+      </div>
+    </footer>
   );
 }
 

@@ -14,76 +14,49 @@ function SearchFood(props) {
 
   return (
     <>
-      <div
-        style={{
-          marginBottom: "20px",
-          border: "1px solid #e3e6ef",
-          borderRadius: "16px",
-          padding: "20px",
-          background: "#ffffff",
-          textAlign: "left",
-        }}
-      >
+      <section className="panel-card">
         <h2>Smart Search</h2>
-        <p style={{ marginBottom: "16px", color: "#6b7280" }}>
+        <p className="panel-card__copy">
           Filter by food name, city, or type "urgent" to find fast-moving items.
         </p>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "12px",
-          }}
-        >
+        <div className="field-grid">
           <input
+            className="field-input"
             placeholder="Search by food or keyword"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            style={{ padding: "12px", borderRadius: "10px", border: "1px solid #d1d5db" }}
           />
           <input
+            className="field-input"
             placeholder="Your location"
             value={locationText}
             onChange={(e) => setLocationText(e.target.value)}
-            style={{ padding: "12px", borderRadius: "10px", border: "1px solid #d1d5db" }}
           />
         </div>
 
-        <div style={{ marginTop: "12px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div className="chip-row">
           <button
+            className="secondary-button"
             type="button"
             onClick={() => {
               setSearchText("urgent");
-            }}
-            style={{
-              border: "1px solid #d1d5db",
-              borderRadius: "999px",
-              padding: "8px 12px",
-              background: "#fff",
-              cursor: "pointer",
             }}
           >
             Show urgent
           </button>
           <button
+            className="secondary-button"
             type="button"
             onClick={() => {
               setSearchText("");
               setLocationText("");
             }}
-            style={{
-              border: "1px solid #d1d5db",
-              borderRadius: "999px",
-              padding: "8px 12px",
-              background: "#fff",
-              cursor: "pointer",
-            }}
           >
             Clear filters
           </button>
         </div>
-      </div>
+      </section>
 
       {isStandalonePage ? (
         <FoodList searchText={searchText} locationText={locationText} />
