@@ -2,9 +2,23 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  users: defineTable({
+    name: v.string(),
+    email: v.string(),
+    location: v.optional(v.string()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
+    passwordHash: v.string(),
+    createdAt: v.number(),
+  }),
+  sessions: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+    createdAt: v.number(),
+  }),
   foods: defineTable({
     foodName: v.string(),
-    quantity: v.string(),
+    quantity: v.union(v.number(), v.string()),
     expiryTime: v.union(v.number(), v.string()),
     location: v.string(),
     coordinates: v.optional(

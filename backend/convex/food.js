@@ -3,8 +3,7 @@ import { action, internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 function getFallbackEstimatedPeopleServed(quantity) {
-  const match = quantity.match(/\d+/);
-  const amount = match ? Number(match[0]) : 1;
+  const amount = getQuantityKgValue(quantity);
 
   if (amount <= 5) return 5;
   if (amount <= 15) return 12;
@@ -33,11 +32,10 @@ function getFallbackSuggestedAction(urgencyLevel) {
 }
 
 function getFallbackPriorityScore(expiryTime, quantity) {
-  const quantityMatch = quantity.match(/\d+/);
-  const amount = quantityMatch ? Number(quantityMatch[0]) : 1;
+  const amount = getQuantityKgValue(quantity);
   const expiryWeight =
     expiryTime <= 2 ? 0.95 : expiryTime <= 6 ? 0.7 : expiryTime <= 12 ? 0.5 : 0.3;
-  const quantityWeight = Math.min(amount / 50, 1);
+  const quantityWeight = Math.min(amount / 25, 1);
 
   return Math.round((expiryWeight * 0.7 + quantityWeight * 0.3) * 100);
 }
@@ -69,6 +67,126 @@ function getFallbackRecommendedNGOs(foodName, urgencyLevel) {
     ? ["Community Kitchen", "Night Shelter", "Emergency Food Van"]
     : ["Community Pantry", "NGO Food Bank", "Local Shelter"];
 }
+
+function getExpiryHours(expiryTime) {
+  if (typeof expiryTime === "number") {
+    return expiryTime;
+  }
+
+  const match = String(expiryTime).match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function getQuantityKgValue(quantity) {
+  if (typeof quantity === "number") {
+    return quantity > 0 ? quantity : 1;
+  }
+
+  const match = String(quantity).match(/(\d+(\.\d+)?)/);
+  const amount = match ? Number(match[0]) : 1;
+  return amount > 0 ? amount : 1;
+}
+
+function getTravelTime(ngoRegion, foodLocation) {
+  if (
+    ngoRegion &&
+    ngoRegion.trim().toLowerCase() === foodLocation.trim().toLowerCase()
+  ) {
+    return 30;
+  }
+
+  return 120;
+}
+
+function toRadians(value) {
+  return (value * Math.PI) / 180;
+}
+
+function getDistanceKm(start, end) {
+  if (
+    !start ||
+    !end ||
+    typeof start.lat !== "number" ||
+    typeof start.lng !== "number" ||
+    typeof end.lat !== "number" ||
+    typeof end.lng !== "number"
+  ) {
+    return null;
+  }
+
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(end.lat - start.lat);
+  const dLng = toRadians(end.lng - start.lng);
+  const lat1 = toRadians(start.lat);
+  const lat2 = toRadians(end.lat);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusKm * c;
+}
+
+function getEstimatedTravelTime({
+  viewerRegion,
+  foodLocation,
+  viewerCoordinates,
+  foodCoordinates,
+}) {
+  const distanceKm = getDistanceKm(viewerCoordinates, foodCoordinates);
+
+  if (distanceKm !== null) {
+    const assumedCitySpeedKmPerHour = 22;
+    const travelMinutes = Math.round((distanceKm / assumedCitySpeedKmPerHour) * 60);
+    return Math.max(travelMinutes, 10);
+  }
+
+  if (viewerRegion) {
+    return getTravelTime(viewerRegion, foodLocation);
+  }
+
+  return undefined;
+}
+
+const SAMPLE_DEMO_FOODS = [
+  { foodName: "Cooked Rice Packs", quantity: 8, expiryTime: 3, location: "Delhi", coordinates: { lat: 28.6139, lng: 77.209 } },
+  { foodName: "Chapati Meal Boxes", quantity: 12, expiryTime: 5, location: "Delhi", coordinates: { lat: 28.6139, lng: 77.209 } },
+  { foodName: "Vegetable Pulao", quantity: 6, expiryTime: 2, location: "Delhi", coordinates: { lat: 28.6139, lng: 77.209 } },
+  { foodName: "Bread and Curry Trays", quantity: 10, expiryTime: 4, location: "Delhi", coordinates: { lat: 28.6139, lng: 77.209 } },
+  { foodName: "Fruit Donation Crates", quantity: 14, expiryTime: 8, location: "Delhi", coordinates: { lat: 28.6139, lng: 77.209 } },
+  { foodName: "Masala Khichdi", quantity: 7, expiryTime: 3, location: "Mumbai", coordinates: { lat: 19.076, lng: 72.8777 } },
+  { foodName: "Bakery Bread Loaves", quantity: 5, expiryTime: 2, location: "Mumbai", coordinates: { lat: 19.076, lng: 72.8777 } },
+  { foodName: "Veg Biryani Pots", quantity: 11, expiryTime: 6, location: "Mumbai", coordinates: { lat: 19.076, lng: 72.8777 } },
+  { foodName: "Mixed Vegetable Curry", quantity: 9, expiryTime: 4, location: "Mumbai", coordinates: { lat: 19.076, lng: 72.8777 } },
+  { foodName: "Banana and Apple Boxes", quantity: 13, expiryTime: 7, location: "Mumbai", coordinates: { lat: 19.076, lng: 72.8777 } },
+  { foodName: "Lemon Rice Containers", quantity: 6, expiryTime: 3, location: "Bengaluru", coordinates: { lat: 12.9716, lng: 77.5946 } },
+  { foodName: "Idli Batter Meals", quantity: 8, expiryTime: 5, location: "Bengaluru", coordinates: { lat: 12.9716, lng: 77.5946 } },
+  { foodName: "Sambar Rice Buckets", quantity: 10, expiryTime: 4, location: "Bengaluru", coordinates: { lat: 12.9716, lng: 77.5946 } },
+  { foodName: "Curd Rice Tubs", quantity: 7, expiryTime: 2, location: "Bengaluru", coordinates: { lat: 12.9716, lng: 77.5946 } },
+  { foodName: "Breakfast Snack Packs", quantity: 4, expiryTime: 1, location: "Bengaluru", coordinates: { lat: 12.9716, lng: 77.5946 } },
+  { foodName: "Dal Khichdi Buckets", quantity: 9, expiryTime: 4, location: "Hyderabad", coordinates: { lat: 17.385, lng: 78.4867 } },
+  { foodName: "Veg Fried Rice", quantity: 11, expiryTime: 5, location: "Hyderabad", coordinates: { lat: 17.385, lng: 78.4867 } },
+  { foodName: "Thepla and Sabzi Packs", quantity: 6, expiryTime: 3, location: "Hyderabad", coordinates: { lat: 17.385, lng: 78.4867 } },
+  { foodName: "Mini Meal Trays", quantity: 12, expiryTime: 6, location: "Hyderabad", coordinates: { lat: 17.385, lng: 78.4867 } },
+  { foodName: "Fresh Bakery Buns", quantity: 5, expiryTime: 2, location: "Hyderabad", coordinates: { lat: 17.385, lng: 78.4867 } },
+  { foodName: "Pongal Pots", quantity: 8, expiryTime: 3, location: "Chennai", coordinates: { lat: 13.0827, lng: 80.2707 } },
+  { foodName: "Curd Rice Meal Boxes", quantity: 9, expiryTime: 5, location: "Chennai", coordinates: { lat: 13.0827, lng: 80.2707 } },
+  { foodName: "Upma Breakfast Batches", quantity: 6, expiryTime: 2, location: "Chennai", coordinates: { lat: 13.0827, lng: 80.2707 } },
+  { foodName: "Vegetable Kurma Trays", quantity: 10, expiryTime: 4, location: "Chennai", coordinates: { lat: 13.0827, lng: 80.2707 } },
+  { foodName: "Seasonal Fruit Baskets", quantity: 15, expiryTime: 9, location: "Chennai", coordinates: { lat: 13.0827, lng: 80.2707 } },
+  { foodName: "Poha Donation Packs", quantity: 7, expiryTime: 2, location: "Pune", coordinates: { lat: 18.5204, lng: 73.8567 } },
+  { foodName: "Veg Pulao Trays", quantity: 10, expiryTime: 4, location: "Pune", coordinates: { lat: 18.5204, lng: 73.8567 } },
+  { foodName: "Roti and Dal Combo", quantity: 11, expiryTime: 5, location: "Pune", coordinates: { lat: 18.5204, lng: 73.8567 } },
+  { foodName: "Sandwich Snack Packs", quantity: 5, expiryTime: 1, location: "Pune", coordinates: { lat: 18.5204, lng: 73.8567 } },
+  { foodName: "Cooked Sabzi Containers", quantity: 8, expiryTime: 3, location: "Pune", coordinates: { lat: 18.5204, lng: 73.8567 } },
+  { foodName: "Veg Chowmein Boxes", quantity: 9, expiryTime: 4, location: "Kolkata", coordinates: { lat: 22.5726, lng: 88.3639 } },
+  { foodName: "Rice and Dal Pots", quantity: 12, expiryTime: 6, location: "Kolkata", coordinates: { lat: 22.5726, lng: 88.3639 } },
+  { foodName: "Bread Butter Packs", quantity: 4, expiryTime: 1, location: "Kolkata", coordinates: { lat: 22.5726, lng: 88.3639 } },
+  { foodName: "Mixed Veg Meal Kits", quantity: 10, expiryTime: 5, location: "Kolkata", coordinates: { lat: 22.5726, lng: 88.3639 } },
+  { foodName: "Festival Sweets Boxes", quantity: 6, expiryTime: 7, location: "Kolkata", coordinates: { lat: 22.5726, lng: 88.3639 } },
+];
 
 async function generateAIInsights(food) {
   const fallbackUrgencyLevel = getFallbackUrgency(food.expiryTime);
@@ -250,7 +368,7 @@ async function getCoordinatesFromLocation(location) {
 export const createFood = internalMutation({
   args: {
     foodName: v.string(),
-    quantity: v.string(),
+    quantity: v.number(),
     expiryTime: v.number(),
     location: v.string(),
     coordinates: v.optional(
@@ -293,24 +411,89 @@ export const createAlert = internalMutation({
   },
 });
 
+export const seedSampleFoods = mutation({
+  handler: async (ctx) => {
+    const existingFoods = await ctx.db.query("foods").collect();
+    const existingKeys = new Set(
+      existingFoods.map((food) => `${food.foodName.toLowerCase()}|${food.location.toLowerCase()}`),
+    );
+    const now = Date.now();
+    let inserted = 0;
+
+    for (let index = 0; index < SAMPLE_DEMO_FOODS.length; index += 1) {
+      const item = SAMPLE_DEMO_FOODS[index];
+      const key = `${item.foodName.toLowerCase()}|${item.location.toLowerCase()}`;
+
+      if (existingKeys.has(key)) {
+        continue;
+      }
+
+      const aiUrgencyLevel = getFallbackUrgency(item.expiryTime);
+
+      await ctx.db.insert("foods", {
+        foodName: item.foodName,
+        quantity: item.quantity,
+        expiryTime: item.expiryTime,
+        location: item.location,
+        coordinates: item.coordinates,
+        latitude: item.coordinates.lat,
+        longitude: item.coordinates.lng,
+        aiUrgencyLevel,
+        aiEstimatedPeopleServed: getFallbackEstimatedPeopleServed(item.quantity),
+        aiSuggestedAction: getFallbackSuggestedAction(aiUrgencyLevel),
+        priorityScore: getFallbackPriorityScore(item.expiryTime, item.quantity),
+        estimatedDeliverable: getFallbackEstimatedDeliverable(item.expiryTime),
+        recommendedNGOs: getFallbackRecommendedNGOs(item.foodName, aiUrgencyLevel),
+        claimedBy: "",
+        createdAt: now - index * 7 * 60 * 1000,
+      });
+
+      existingKeys.add(key);
+      inserted += 1;
+    }
+
+    return {
+      inserted,
+      totalSeedItems: SAMPLE_DEMO_FOODS.length,
+    };
+  },
+});
+
 // ➕ Add Food with location geocoding
 export const addFood = action({
   args: {
+    sessionToken: v.string(),
     foodName: v.string(),
-    quantity: v.string(),
+    quantity: v.number(),
     expiryTime: v.number(),
     location: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.runQuery(internal.auth.getUserFromSession, {
+      token: args.sessionToken,
+    });
+
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
     const { latitude, longitude } = await getCoordinatesFromLocation(args.location);
-    const aiInsights = await generateAIInsights(args);
+    const aiInsights = await generateAIInsights({
+      foodName: args.foodName,
+      quantity: args.quantity,
+      expiryTime: args.expiryTime,
+      location: args.location,
+    });
     const coordinates =
       latitude !== undefined && longitude !== undefined
         ? { lat: latitude, lng: longitude }
         : undefined;
 
     const foodId = await ctx.runMutation(internal.food.createFood, {
-      ...args,
+      foodName: args.foodName,
+      quantity: args.quantity,
+      expiryTime: args.expiryTime,
+      location: args.location,
       coordinates,
       latitude,
       longitude,
@@ -338,25 +521,34 @@ export const getFoods = query({
   },
 });
 
+export const getFoodById = query({
+  args: {
+    id: v.id("foods"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
 export const getAIOptimizedFoods = query({
   args: {
-    region: v.optional(v.string()),
+    viewerRegion: v.optional(v.string()),
+    viewerLatitude: v.optional(v.number()),
+    viewerLongitude: v.optional(v.number()),
+    filterRegion: v.optional(v.string()),
     ngoType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const normalizedRegion = args.region?.trim().toLowerCase();
+    const normalizedViewerRegion = args.viewerRegion?.trim().toLowerCase();
+    const normalizedFilterRegion = args.filterRegion?.trim().toLowerCase();
     const normalizedNgoType = args.ngoType?.trim().toLowerCase();
     const foods = await ctx.db.query("foods").collect();
 
     return foods
       .filter((food) => {
-        if (food.claimedBy) {
-          return false;
-        }
-
         const matchesRegion =
-          !normalizedRegion ||
-          food.location.toLowerCase().includes(normalizedRegion);
+          !normalizedFilterRegion ||
+          food.location.toLowerCase().includes(normalizedFilterRegion);
         const matchesNgoType =
           !normalizedNgoType ||
           (food.recommendedNGOs ?? []).some((ngo) =>
@@ -364,6 +556,48 @@ export const getAIOptimizedFoods = query({
           );
 
         return matchesRegion && matchesNgoType;
+      })
+      .map((food) => {
+        const expiryHours = getExpiryHours(food.expiryTime);
+        const travelTime = getEstimatedTravelTime({
+          viewerRegion: args.viewerRegion,
+          foodLocation: food.location,
+          viewerCoordinates:
+            typeof args.viewerLatitude === "number" &&
+            typeof args.viewerLongitude === "number"
+              ? { lat: args.viewerLatitude, lng: args.viewerLongitude }
+              : null,
+          foodCoordinates:
+            typeof food.coordinates?.lat === "number" &&
+            typeof food.coordinates?.lng === "number"
+              ? food.coordinates
+              : typeof food.latitude === "number" && typeof food.longitude === "number"
+                ? { lat: food.latitude, lng: food.longitude }
+                : null,
+        });
+        const canReachInTime = travelTime <= expiryHours * 60;
+        const hasCloseNgo = travelTime === 30;
+        const hasLongExpiry = expiryHours >= 6;
+
+        return {
+          ...food,
+          estimatedDeliverable:
+            travelTime === undefined ? food.estimatedDeliverable : canReachInTime,
+          recommendedNGOs:
+            travelTime === undefined
+              ? food.recommendedNGOs ?? []
+              : canReachInTime
+                ? food.recommendedNGOs ?? []
+                : [],
+          aiUrgencyLevel:
+            canReachInTime && hasCloseNgo && hasLongExpiry
+              ? "high"
+              : food.aiUrgencyLevel,
+          priorityScore:
+            canReachInTime && hasCloseNgo && hasLongExpiry
+              ? Math.max(food.priorityScore ?? 0, 85)
+              : food.priorityScore,
+        };
       })
       .sort((a, b) => {
         const scoreA = a.priorityScore ?? 0;
@@ -388,22 +622,105 @@ export const getUrgentAlerts = query({
   },
 });
 
+export const searchNearbyOrganizations = action({
+  args: {
+    sessionToken: v.string(),
+    foodName: v.string(),
+    location: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.runQuery(internal.auth.getUserFromSession, {
+      token: args.sessionToken,
+    });
+
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    const exaApiKey = process.env.EXA_API_KEY;
+
+    if (!exaApiKey) {
+      return {
+        success: false,
+        message: "EXA_API_KEY is not configured.",
+        organizations: [],
+      };
+    }
+
+    const queryText =
+      `${args.location} NGOs, food banks, shelters, community kitchens, hunger relief organizations ` +
+      `that could accept surplus ${args.foodName}`;
+
+    const response = await fetch("https://api.exa.ai/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": exaApiKey,
+      },
+      body: JSON.stringify({
+        query: queryText,
+        type: "auto",
+        numResults: 5,
+        contents: {
+          highlights: {
+            maxCharacters: 400,
+          },
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: "Could not fetch nearby organizations right now.",
+        organizations: [],
+      };
+    }
+
+    const data = await response.json();
+    const organizations = Array.isArray(data.results)
+      ? data.results.map((result) => ({
+          title: result.title ?? "Untitled organization",
+          url: result.url ?? "",
+          snippet:
+            Array.isArray(result.highlights) && result.highlights.length
+              ? result.highlights[0]
+              : "Relevant organization found for this location.",
+        }))
+      : [];
+
+    return {
+      success: true,
+      organizations,
+    };
+  },
+});
+
 // ✅ Claim Food
 export const claimFood = mutation({
   args: {
     id: v.id("foods"),
+    sessionToken: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.runQuery(internal.auth.getUserFromSession, {
+      token: args.sessionToken,
+    });
+
+    if (!user) {
+      return { success: false, message: "Unauthorized" };
+    }
+
     const existingFood = await ctx.db.get(args.id);
 
     if (!existingFood || existingFood.claimedBy) {
-      return { success: false };
+      return { success: false, message: "Food already claimed or missing" };
     }
 
     await ctx.db.patch(args.id, {
-      claimedBy: "claimed",
+      claimedBy: user.email,
     });
 
-    return { success: true };
+    return { success: true, message: "Food claimed successfully" };
   },
 });
